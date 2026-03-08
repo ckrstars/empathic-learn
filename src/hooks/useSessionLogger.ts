@@ -28,7 +28,7 @@ export function useSessionLogger() {
 
     // Save to database
     const { data: { user } } = await supabase.auth.getUser();
-    if (user && events.length > 0) {
+    if (user) {
       await supabase.from('session_history').insert({
         user_id: user.id,
         started_at: new Date(startTimeRef.current).toISOString(),
