@@ -20,6 +20,7 @@ import { useSessionLogger } from '@/hooks/useSessionLogger';
 import type { EmotionState } from '@/types/emotion';
 
 export function LearningDashboard() {
+  const { signOut } = useAuth();
   const [currentTopic, setCurrentTopic] = useState('What is Machine Learning?');
   const [showBreathing, setShowBreathing] = useState(false);
   const [showAdaptive, setShowAdaptive] = useState(false);
