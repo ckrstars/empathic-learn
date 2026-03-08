@@ -1,62 +1,86 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lightbulb, HelpCircle, X, CheckCircle2 } from 'lucide-react';
+import { Lightbulb, HelpCircle, X, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 import type { EmotionState } from '@/types/emotion';
 
 interface AdaptiveResponseProps {
   state: EmotionState;
   topic: string;
+  lessonContent?: string;
   onDismiss: () => void;
 }
 
-const EXPLANATIONS: Record<string, string[]> = {
-  'What is Machine Learning?': [
-    '🎯 ML is just pattern recognition — feed data in, get predictions out',
-    '📊 Think: spreadsheet formulas that write themselves by looking at examples',
-    '🔄 Three flavors: supervised (with answers), unsupervised (find patterns), reinforcement (trial & error)',
-  ],
-  'Neural Networks Explained': [
-    '🧠 Neural nets are layers of math operations, loosely inspired by brain neurons',
-    '📥 Data goes in → gets transformed layer by layer → answer comes out',
-    '🔧 Training = adjusting millions of tiny knobs until the output matches what you want',
-  ],
-  'Training & Evaluation': [
-    '🔁 Training loop: predict → check → adjust → repeat (thousands of times)',
-    '⚖️ Overfitting = memorizing answers; Underfitting = too simple to learn',
-    '📏 Always test on data the model has never seen before',
-  ],
-};
+interface QuizQuestion {
+  question: string;
+  options: string[];
+  correct: number;
+}
 
-const QUIZZES: Record<string, { question: string; options: string[]; correct: number }[]> = {
-  'What is Machine Learning?': [
-    { question: 'Which type of ML learns from labeled data?', options: ['Unsupervised', 'Supervised', 'Reinforcement'], correct: 1 },
-    { question: 'ML algorithms primarily learn from...', options: ['Hard-coded rules', 'Data patterns', 'Random guessing'], correct: 1 },
-    { question: 'Reinforcement learning is most like...', options: ['Studying flashcards', 'Training a dog with treats', 'Reading a textbook'], correct: 1 },
-  ],
-  'Neural Networks Explained': [
-    { question: 'What is backpropagation?', options: ['Forward data flow', 'Error-driven weight adjustment', 'Data preprocessing'], correct: 1 },
-    { question: '"Deep learning" means...', options: ['Complex math', 'Many hidden layers', 'Big datasets'], correct: 1 },
-    { question: 'The output layer produces...', options: ['Raw data', 'Weighted sums', 'Final predictions'], correct: 2 },
-  ],
-  'Training & Evaluation': [
-    { question: 'What is overfitting?', options: ['Model is too complex', 'Model memorizes training data', 'Model trains too fast'], correct: 1 },
-    { question: 'An epoch is...', options: ['One training sample', 'One pass through all data', 'One weight update'], correct: 1 },
-    { question: 'Learning rate controls...', options: ['Data speed', 'Weight adjustment size', 'Network depth'], correct: 1 },
-  ],
-};
-
-export function AdaptiveResponse({ state, topic, onDismiss }: AdaptiveResponseProps) {
+export function AdaptiveResponse({ state, topic, lessonContent, onDismiss }: AdaptiveResponseProps) {
+  const [explanations, setExplanations] = useState<string[]>([]);
+  const [quizzes, setQuizzes] = useState<QuizQuestion[]>([]);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [currentQuiz, setCurrentQuiz] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isConfused = state === 'confused';
   const isBored = state === 'bored';
 
+  const fetchContent = useCallback(async () => {
+    if (!isConfused && !isBored) return;
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('adaptive-content', {
+        body: {
+          type: isConfused ? 'explain' : 'quiz',
+          topic,
+          lessonContent: lessonContent || topic,
+        },
+      });
+
+      if (fnError) throw fnError;
+
+      if (isConfused && data?.explanations) {
+        setExplanations(data.explanations);
+      } else if (isBored && data?.questions) {
+        setQuizzes(data.questions);
+        setCurrentQuiz(0);
+        setSelectedAnswer(null);
+      } else {
+        throw new Error('Unexpected response format');
+      }
+    } catch (err: any) {
+      console.error('Adaptive content error:', err);
+      setError(err?.message || 'Failed to generate content');
+      // Fallback to static content
+      if (isConfused) {
+        setExplanations([
+          '🎯 Think of this concept as a simple pattern — input goes in, transformation happens, output comes out',
+          '📊 It\'s like a recipe: ingredients (data) + steps (algorithm) = dish (result)',
+          '🔄 Don\'t worry about the math — focus on the intuition first, details come later',
+        ]);
+      } else {
+        setQuizzes([
+          { question: `What is the key idea behind ${topic}?`, options: ['Pattern recognition', 'Random guessing', 'Manual coding'], correct: 0 },
+          { question: 'Why is this concept important?', options: ['It isn\'t', 'It automates learning from data', 'It replaces computers'], correct: 1 },
+        ]);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isConfused, isBored, topic, lessonContent]);
+
+  useEffect(() => {
+    fetchContent();
+  }, [fetchContent]);
+
   if (!isConfused && !isBored) return null;
 
-  const explanations = EXPLANATIONS[topic] || EXPLANATIONS['What is Machine Learning?'];
-  const quizzes = QUIZZES[topic] || QUIZZES['What is Machine Learning?'];
   const quiz = quizzes[currentQuiz];
 
   return (
@@ -75,15 +99,29 @@ export function AdaptiveResponse({ state, topic, onDismiss }: AdaptiveResponsePr
               <HelpCircle className="w-5 h-5 text-emotion-bored" />
             )}
             <h3 className="font-semibold text-foreground">
-              {isConfused ? 'Simplified Explanation' : 'Quick Challenge'}
+              {isConfused ? 'AI Simplified Explanation' : 'AI Quick Challenge'}
             </h3>
+            <Sparkles className="w-3.5 h-3.5 text-primary" />
           </div>
           <button onClick={onDismiss} className="text-muted-foreground hover:text-foreground">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {isConfused && (
+        {isLoading && (
+          <div className="flex items-center justify-center py-8 gap-2">
+            <Loader2 className="w-5 h-5 text-primary animate-spin" />
+            <span className="text-sm text-muted-foreground">AI is generating content...</span>
+          </div>
+        )}
+
+        {error && !isLoading && (
+          <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1">
+            <span className="text-emotion-confused">⚡</span> Using fallback content
+          </p>
+        )}
+
+        {!isLoading && isConfused && explanations.length > 0 && (
           <div className="space-y-3">
             {explanations.map((exp, i) => (
               <motion.div
@@ -99,7 +137,7 @@ export function AdaptiveResponse({ state, topic, onDismiss }: AdaptiveResponsePr
           </div>
         )}
 
-        {isBored && quiz && (
+        {!isLoading && isBored && quiz && (
           <div>
             <p className="text-sm text-foreground font-medium mb-3">{quiz.question}</p>
             <div className="space-y-2">
