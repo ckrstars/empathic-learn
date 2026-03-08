@@ -107,6 +107,12 @@ export function LearningDashboard() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Link to="/history">
+              <Button variant="outline" size="sm" className="border-border text-foreground">
+                <History className="w-4 h-4 mr-1.5" />
+                History
+              </Button>
+            </Link>
             {!session.isSessionActive ? (
               <Button onClick={handleStartSession} className="bg-primary text-primary-foreground hover:bg-primary/90">
                 <Play className="w-4 h-4 mr-1.5" />
@@ -124,6 +130,9 @@ export function LearningDashboard() {
                 </Button>
               </>
             )}
+            <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-foreground">
+              <LogOut className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
