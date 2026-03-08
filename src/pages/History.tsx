@@ -66,6 +66,21 @@ export default function History() {
         ))}
       </div>
 
+      {/* Flow Progress Chart */}
+      {!loading && sessions.length >= 2 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass rounded-xl border border-border/30 p-4 mb-6"
+        >
+          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+            <Flame className="w-4 h-4 text-primary" />
+            Flow Minutes Over Time
+          </h3>
+          <FlowChart sessions={sessions} />
+        </motion.div>
+      )}
+
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
       ) : sessions.length === 0 ? (
