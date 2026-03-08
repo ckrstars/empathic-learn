@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Play, Square, BarChart3, Brain } from 'lucide-react';
+import { Play, Square, BarChart3, Brain, History, LogOut } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { EmotionStateBar } from '@/components/EmotionStateBar';
 import { WebcamWidget } from '@/components/WebcamWidget';
