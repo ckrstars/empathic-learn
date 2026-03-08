@@ -51,11 +51,12 @@ export function useSessionLogger() {
 }
 
 function computeStats(events: SessionEvent[], startTime: number): SessionStats {
-  if (events.length === 0) {
-    return { totalMinutes: 0, flowMinutes: 0, longestFlowStreak: 0, confusionClusters: 0, topEmotion: 'neutral' };
-  }
+  const totalMs = startTime > 0 ? Date.now() - startTime : 0;
+  const totalMinutes = Math.round(totalMs / 60000 * 10) / 10;
 
-  const totalMs = Date.now() - startTime;
+  if (events.length === 0) {
+    return { totalMinutes, flowMinutes: 0, longestFlowStreak: 0, confusionClusters: 0, topEmotion: 'neutral' };
+  }
   const totalMinutes = Math.round(totalMs / 60000 * 10) / 10;
 
   const stateDurations: Record<EmotionState, number> = {
