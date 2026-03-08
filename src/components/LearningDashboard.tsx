@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Play, Square, BarChart3, Brain } from 'lucide-react';
+import { Play, Square, BarChart3, Brain, History, LogOut } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { EmotionStateBar } from '@/components/EmotionStateBar';
 import { WebcamWidget } from '@/components/WebcamWidget';
@@ -18,6 +20,7 @@ import { useSessionLogger } from '@/hooks/useSessionLogger';
 import type { EmotionState } from '@/types/emotion';
 
 export function LearningDashboard() {
+  const { signOut } = useAuth();
   const [currentTopic, setCurrentTopic] = useState('What is Machine Learning?');
   const [showBreathing, setShowBreathing] = useState(false);
   const [showAdaptive, setShowAdaptive] = useState(false);
@@ -104,6 +107,12 @@ export function LearningDashboard() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Link to="/history">
+              <Button variant="outline" size="sm" className="border-border text-foreground">
+                <History className="w-4 h-4 mr-1.5" />
+                History
+              </Button>
+            </Link>
             {!session.isSessionActive ? (
               <Button onClick={handleStartSession} className="bg-primary text-primary-foreground hover:bg-primary/90">
                 <Play className="w-4 h-4 mr-1.5" />
@@ -121,6 +130,9 @@ export function LearningDashboard() {
                 </Button>
               </>
             )}
+            <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-foreground">
+              <LogOut className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
