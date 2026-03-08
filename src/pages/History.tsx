@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Brain, ArrowLeft, Clock, Flame, AlertTriangle, TrendingUp, Loader2 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { JourneyMap } from '@/components/JourneyMap';
@@ -65,6 +66,21 @@ export default function History() {
         ))}
       </div>
 
+      {/* Flow Progress Chart */}
+      {!loading && sessions.length >= 2 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass rounded-xl border border-border/30 p-4 mb-6"
+        >
+          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+            <Flame className="w-4 h-4 text-primary" />
+            Flow Minutes Over Time
+          </h3>
+          <FlowChart sessions={sessions} />
+        </motion.div>
+      )}
+
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
       ) : sessions.length === 0 ? (
@@ -112,5 +128,47 @@ export default function History() {
         </div>
       )}
     </div>
+  );
+}
+
+function FlowChart({ sessions }: { sessions: SessionRecord[] }) {
+  const chartData = useMemo(() => {
+    return [...sessions]
+      .sort((a, b) => new Date(a.started_at).getTime() - new Date(b.started_at).getTime())
+      .map((s) => {
+        const d = new Date(s.started_at);
+        return {
+          date: `${d.getMonth() + 1}/${d.getDate()}`,
+          flow: Math.round(s.flow_minutes * 10) / 10,
+          total: Math.round(s.total_minutes * 10) / 10,
+        };
+      });
+  }, [sessions]);
+
+  return (
+    <ResponsiveContainer width="100%" height={200}>
+      <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+        <defs>
+          <linearGradient id="flowGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+        <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
+        <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" unit="m" />
+        <Tooltip
+          contentStyle={{
+            backgroundColor: 'hsl(var(--card))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: '8px',
+            fontSize: '12px',
+            color: 'hsl(var(--foreground))',
+          }}
+        />
+        <Area type="monotone" dataKey="total" stroke="hsl(var(--muted-foreground))" strokeWidth={1.5} fill="none" name="Total (min)" dot={false} />
+        <Area type="monotone" dataKey="flow" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#flowGradient)" name="Flow (min)" dot={{ r: 3, fill: 'hsl(var(--primary))' }} />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }
