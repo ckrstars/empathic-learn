@@ -57,7 +57,6 @@ function computeStats(events: SessionEvent[], startTime: number): SessionStats {
   if (events.length === 0) {
     return { totalMinutes, flowMinutes: 0, longestFlowStreak: 0, confusionClusters: 0, topEmotion: 'neutral' };
   }
-  const totalMinutes = Math.round(totalMs / 60000 * 10) / 10;
 
   const stateDurations: Record<EmotionState, number> = {
     flow: 0, focused: 0, confused: 0, bored: 0, fatigued: 0, neutral: 0,
