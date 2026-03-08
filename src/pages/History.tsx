@@ -130,3 +130,45 @@ export default function History() {
     </div>
   );
 }
+
+function FlowChart({ sessions }: { sessions: SessionRecord[] }) {
+  const chartData = useMemo(() => {
+    return [...sessions]
+      .sort((a, b) => new Date(a.started_at).getTime() - new Date(b.started_at).getTime())
+      .map((s) => {
+        const d = new Date(s.started_at);
+        return {
+          date: `${d.getMonth() + 1}/${d.getDate()}`,
+          flow: Math.round(s.flow_minutes * 10) / 10,
+          total: Math.round(s.total_minutes * 10) / 10,
+        };
+      });
+  }, [sessions]);
+
+  return (
+    <ResponsiveContainer width="100%" height={200}>
+      <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+        <defs>
+          <linearGradient id="flowGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+        <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
+        <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" unit="m" />
+        <Tooltip
+          contentStyle={{
+            backgroundColor: 'hsl(var(--card))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: '8px',
+            fontSize: '12px',
+            color: 'hsl(var(--foreground))',
+          }}
+        />
+        <Area type="monotone" dataKey="total" stroke="hsl(var(--muted-foreground))" strokeWidth={1.5} fill="none" name="Total (min)" dot={false} />
+        <Area type="monotone" dataKey="flow" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#flowGradient)" name="Flow (min)" dot={{ r: 3, fill: 'hsl(var(--primary))' }} />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+}
