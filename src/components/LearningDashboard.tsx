@@ -13,6 +13,7 @@ import { JourneyMap } from '@/components/JourneyMap';
 import { AdaptiveResponse } from '@/components/AdaptiveResponse';
 import { SessionStatsCard } from '@/components/SessionStatsCard';
 import { SignalsPanel } from '@/components/SignalsPanel';
+import { DocumentUploader } from '@/components/DocumentUploader';
 import { useWebcamEmotion } from '@/hooks/useWebcamEmotion';
 import { useMultiModalSignals } from '@/hooks/useMultiModalSignals';
 import { useEmotionFusion } from '@/hooks/useEmotionFusion';
