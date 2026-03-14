@@ -180,6 +180,7 @@ export function LearningDashboard() {
             error={webcam.error}
           />
           <SignalsPanel signals={signals} />
+          <DocumentUploader />
           <SessionStatsCard stats={stats} />
         </div>
       </div>
