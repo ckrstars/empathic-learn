@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Play, Square, BarChart3, Brain, History, LogOut, Users } from 'lucide-react';
+import { Play, Square, BarChart3, Brain, History, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { EmotionStateBar } from '@/components/EmotionStateBar';
@@ -14,8 +14,6 @@ import { AdaptiveResponse } from '@/components/AdaptiveResponse';
 import { SessionStatsCard } from '@/components/SessionStatsCard';
 import { SignalsPanel } from '@/components/SignalsPanel';
 import { DocumentUploader } from '@/components/DocumentUploader';
-import { EngagementScore } from '@/components/EngagementScore';
-import { AITeachingAssistant } from '@/components/AITeachingAssistant';
 import { useWebcamEmotion } from '@/hooks/useWebcamEmotion';
 import { useMultiModalSignals } from '@/hooks/useMultiModalSignals';
 import { useEmotionFusion } from '@/hooks/useEmotionFusion';
@@ -98,11 +96,6 @@ export function LearningDashboard() {
     <div className="min-h-screen bg-background p-4 md:p-6">
       <FlowStateOverlay isInFlow={isInFlow && session.isSessionActive} flowMinutes={stats.flowMinutes} />
       <BreathingBreak isVisible={showBreathing} onDismiss={() => setShowBreathing(false)} />
-      <AITeachingAssistant
-        emotionState={fusedEmotion.state}
-        topic={currentTopic}
-        isSessionActive={session.isSessionActive}
-      />
 
       {/* Header */}
       <header className="mb-6">
@@ -115,12 +108,6 @@ export function LearningDashboard() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Link to="/teacher">
-              <Button variant="outline" size="sm" className="border-border text-foreground">
-                <Users className="w-4 h-4 mr-1.5" />
-                Teacher
-              </Button>
-            </Link>
             <Link to="/history">
               <Button variant="outline" size="sm" className="border-border text-foreground">
                 <History className="w-4 h-4 mr-1.5" />
@@ -192,15 +179,6 @@ export function LearningDashboard() {
             isLoading={webcam.isLoading}
             error={webcam.error}
           />
-          <EngagementScore
-            emotionState={fusedEmotion.state}
-            emotionConfidence={fusedEmotion.confidence}
-            gazeScore={webcam.gazeScore}
-            headPoseScore={webcam.headPoseScore}
-            typingVariance={signals.typingVariance}
-            mouseIdlePercent={signals.mouseIdlePercent}
-            isActive={session.isSessionActive}
-          />
           <SignalsPanel signals={signals} />
           <DocumentUploader />
           <SessionStatsCard stats={stats} />
@@ -224,8 +202,8 @@ export function LearningDashboard() {
             <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
               <div className="glass rounded-lg p-3">
                 <span className="text-2xl block mb-1">🎯</span>
-                <strong className="text-foreground">Focus Score</strong>
-                <p>ML-powered engagement tracking</p>
+                <strong className="text-foreground">Multi-Modal Fusion</strong>
+                <p>4 signal sources combined</p>
               </div>
               <div className="glass rounded-lg p-3">
                 <span className="text-2xl block mb-1">🔥</span>
@@ -233,14 +211,14 @@ export function LearningDashboard() {
                 <p>Protects your focus zone</p>
               </div>
               <div className="glass rounded-lg p-3">
-                <span className="text-2xl block mb-1">🤖</span>
-                <strong className="text-foreground">AI Tutor</strong>
-                <p>Auto-explains when confused</p>
+                <span className="text-2xl block mb-1">🗺️</span>
+                <strong className="text-foreground">Journey Map</strong>
+                <p>Post-session insights</p>
               </div>
               <div className="glass rounded-lg p-3">
-                <span className="text-2xl block mb-1">📊</span>
-                <strong className="text-foreground">Teacher Dashboard</strong>
-                <p>Attention heatmaps & alerts</p>
+                <span className="text-2xl block mb-1">💡</span>
+                <strong className="text-foreground">Adaptive Content</strong>
+                <p>AI-powered responses</p>
               </div>
             </div>
           </div>

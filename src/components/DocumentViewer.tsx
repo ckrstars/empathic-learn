@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, ZoomIn, ZoomOut, Download, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, ZoomIn, ZoomOut, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -12,82 +12,44 @@ interface DocumentViewerProps {
 
 export function DocumentViewer({ url, name, type, onClose }: DocumentViewerProps) {
   const [zoom, setZoom] = useState(1);
-  const [pdfDoc, setPdfDoc] = useState<any>(null);
-  const [renderedPages, setRenderedPages] = useState<Map<number, string>>(new Map());
-  const [totalPages, setTotalPages] = useState(0);
+  const [pdfPages, setPdfPages] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const isPdf = type === 'application/pdf';
-  const containerRef = useRef<HTMLDivElement>(null);
-  const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
-  // Load PDF document (metadata only, no rendering yet)
+  // For PDFs, we render using canvas via pdf.js
   useEffect(() => {
     if (!isPdf) return;
     setLoading(true);
-    let cancelled = false;
 
     const loadPdf = async () => {
       try {
         const pdfjsLib = await import('pdfjs-dist');
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
         const pdf = await pdfjsLib.getDocument(url).promise;
-        if (!cancelled) {
-          setPdfDoc(pdf);
-          setTotalPages(pdf.numPages);
-          setLoading(false);
+        const pages: string[] = [];
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 2 });
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext('2d')!;
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          pages.push(canvas.toDataURL('image/png'));
         }
+
+        setPdfPages(pages);
       } catch (err) {
-        console.error('PDF load failed:', err);
-        if (!cancelled) setLoading(false);
+        console.error('PDF render failed:', err);
+      } finally {
+        setLoading(false);
       }
     };
+
     loadPdf();
-    return () => { cancelled = true; };
   }, [url, isPdf]);
-
-  // Render a single page on demand
-  const renderPage = useCallback(async (pageNum: number) => {
-    if (!pdfDoc || renderedPages.has(pageNum)) return;
-    try {
-      const page = await pdfDoc.getPage(pageNum);
-      const viewport = page.getViewport({ scale: 2 });
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const ctx = canvas.getContext('2d')!;
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      const dataUrl = canvas.toDataURL('image/png');
-      setRenderedPages(prev => new Map(prev).set(pageNum, dataUrl));
-    } catch (err) {
-      console.error(`Failed to render page ${pageNum}:`, err);
-    }
-  }, [pdfDoc, renderedPages]);
-
-  // Lazy-load pages with IntersectionObserver
-  useEffect(() => {
-    if (!pdfDoc || totalPages === 0) return;
-
-    // Render first 2 pages immediately
-    renderPage(1);
-    if (totalPages > 1) renderPage(2);
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const pageNum = Number(entry.target.getAttribute('data-page'));
-            if (pageNum) renderPage(pageNum);
-          }
-        });
-      },
-      { root: containerRef.current, rootMargin: '200px' }
-    );
-
-    // Observe all page placeholders
-    pageRefs.current.forEach((el) => observer.observe(el));
-
-    return () => observer.disconnect();
-  }, [pdfDoc, totalPages, renderPage]);
 
   // Close on Escape
   useEffect(() => {
@@ -95,11 +57,6 @@ export function DocumentViewer({ url, name, type, onClose }: DocumentViewerProps
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
-
-  const setPageRef = useCallback((pageNum: number, el: HTMLDivElement | null) => {
-    if (el) pageRefs.current.set(pageNum, el);
-    else pageRefs.current.delete(pageNum);
-  }, []);
 
   return (
     <AnimatePresence>
@@ -123,7 +80,9 @@ export function DocumentViewer({ url, name, type, onClose }: DocumentViewerProps
               <ZoomIn className="w-4 h-4" />
             </Button>
             <a href={url} download={name} target="_blank" rel="noopener noreferrer">
-              <Button variant="ghost" size="sm"><Download className="w-4 h-4" /></Button>
+              <Button variant="ghost" size="sm">
+                <Download className="w-4 h-4" />
+              </Button>
             </a>
             <Button variant="ghost" size="sm" onClick={onClose}>
               <X className="w-4 h-4" />
@@ -132,36 +91,23 @@ export function DocumentViewer({ url, name, type, onClose }: DocumentViewerProps
         </div>
 
         {/* Content */}
-        <div ref={containerRef} className="flex-1 overflow-auto p-4 flex justify-center">
+        <div className="flex-1 overflow-auto p-4 flex justify-center">
           {loading && (
-            <div className="flex items-center justify-center h-full gap-2">
-              <Loader2 className="w-5 h-5 text-primary animate-spin" />
-              <span className="text-muted-foreground text-sm">Loading document…</span>
+            <div className="flex items-center justify-center h-full">
+              <div className="text-muted-foreground text-sm">Loading document…</div>
             </div>
           )}
 
-          {isPdf && !loading && totalPages > 0 && (
+          {isPdf && !loading && pdfPages.length > 0 && (
             <div className="space-y-4 max-w-4xl w-full">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                <div
-                  key={pageNum}
-                  ref={(el) => setPageRef(pageNum, el)}
-                  data-page={pageNum}
-                  className="min-h-[400px]"
-                >
-                  {renderedPages.has(pageNum) ? (
-                    <img
-                      src={renderedPages.get(pageNum)!}
-                      alt={`Page ${pageNum}`}
-                      className="w-full rounded-md shadow-lg border border-border"
-                      style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
-                    />
-                  ) : (
-                    <div className="w-full h-[600px] rounded-md bg-secondary/30 border border-border flex items-center justify-center">
-                      <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
-                    </div>
-                  )}
-                </div>
+              {pdfPages.map((pageImg, i) => (
+                <img
+                  key={i}
+                  src={pageImg}
+                  alt={`Page ${i + 1}`}
+                  className="w-full rounded-md shadow-lg border border-border"
+                  style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
+                />
               ))}
             </div>
           )}

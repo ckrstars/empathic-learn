@@ -2,6 +2,3 @@ project_id = "ohlebixffdmdubdjqtpu"
 
 [functions.adaptive-content]
 verify_jwt = false
-
-[functions.ai-tutor]
-verify_jwt = false
