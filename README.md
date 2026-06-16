@@ -257,6 +257,12 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 ---
 
+## Contributor
+
+Kuldeep Reddy
+
+---
+
 ## 🙏 Acknowledgments
 
 - [face-api.js](https://github.com/vladmandic/face-api) — Facial expression recognition
